@@ -376,18 +376,12 @@ jQuery(document).ready(function () {
 
   function generateDownloadCSV(args) {
     let csv = convertArrayOfObjectsToCSV({ data: args.data });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
     if (!csv) return;
-
     const filename = args.filename || "export.csv";
-
-    if (!csv.match(/^data:text\/csv/i)) {
-      csv = "data:text/csv;charset=utf-8," + csv;
-    }
-
-    const data = encodeURI(csv);
-
     const link = document.createElement("a");
-    link.setAttribute("href", data);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute("download", filename);
     link.click();
   }
