@@ -55,7 +55,6 @@ jQuery(document).ready(function () {
           method: "POST",
           headers: {
             "X-WP-Nonce": fbv_data.rest_nonce,
-            "X-HTTP-Method-Override": "POST",
           },
         })
         .done(function (res) {
@@ -76,7 +75,6 @@ jQuery(document).ready(function () {
             method: "POST",
             headers: {
               "X-WP-Nonce": fbv_data.rest_nonce,
-              "X-HTTP-Method-Override": "POST",
             },
             data: JSON.stringify({
               folders: folders[index],
@@ -113,7 +111,6 @@ jQuery(document).ready(function () {
         method: "POST",
         headers: {
           "X-WP-Nonce": fbv_data.rest_nonce,
-          "X-HTTP-Method-Override": "POST",
         },
       })
       .done(function (res) {
@@ -143,7 +140,6 @@ jQuery(document).ready(function () {
         method: "POST",
         headers: {
           "X-WP-Nonce": fbv_data.rest_nonce,
-          "X-HTTP-Method-Override": "POST",
         },
       })
       .done(function (res) {
@@ -168,7 +164,6 @@ jQuery(document).ready(function () {
         url: fbv_data.json_url + "/fb-no-thanks",
         headers: {
           "X-WP-Nonce": fbv_data.rest_nonce,
-          "X-HTTP-Method-Override": "POST",
         },
         data: JSON.stringify({
           site: $this.data("site"),
@@ -195,7 +190,6 @@ jQuery(document).ready(function () {
         cache: false,
         headers: {
           "X-WP-Nonce": fbv_data.rest_nonce,
-          "X-HTTP-Method-Override": "POST",
         },
         data: JSON.stringify({
           site: $this.data("site"),
@@ -238,7 +232,6 @@ jQuery(document).ready(function () {
           cache: false,
           headers: {
             "X-WP-Nonce": fbv_data.rest_nonce,
-            "X-HTTP-Method-Override": "POST",
           },
           data: JSON.stringify({
             site: site,
@@ -262,7 +255,6 @@ jQuery(document).ready(function () {
           }),
           headers: {
             "X-WP-Nonce": fbv_data.rest_nonce,
-            "X-HTTP-Method-Override": "POST",
           },
         })
         .done(function (res) {
@@ -288,7 +280,6 @@ jQuery(document).ready(function () {
         }),
         headers: {
           "X-WP-Nonce": fbv_data.rest_nonce,
-          "X-HTTP-Method-Override": "POST",
         },
         success: function (res) {
           $this.removeClass("updating-message");
@@ -407,7 +398,6 @@ jQuery(document).ready(function () {
           data: fileUpload,
           headers: {
             "X-WP-Nonce": fbv_data.rest_nonce,
-            "X-HTTP-Method-Override": "POST",
           },
         })
         .done((res) => {
@@ -470,7 +460,6 @@ jQuery(document).ready(function () {
         url: fbv_data.json_url + "/export-csv",
         headers: {
           "X-WP-Nonce": fbv_data.rest_nonce,
-          "X-HTTP-Method-Override": "GET",
         },
         beforeSend: function () {
           $this.addClass("updating-message");
@@ -527,7 +516,6 @@ jQuery(document).ready(function () {
               data: fileUpload,
               headers: {
                 "X-WP-Nonce": fbv_data.rest_nonce,
-                "X-HTTP-Method-Override": "POST",
               },
             })
             .done((res) => {
@@ -607,7 +595,6 @@ jQuery(document).ready(function () {
           // }),
           headers: {
             "X-WP-Nonce": fbv_data.rest_nonce,
-            "X-HTTP-Method-Override": "POST",
           },
           beforeSend: function () {},
         })
