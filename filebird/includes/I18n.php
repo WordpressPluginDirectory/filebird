@@ -17,7 +17,7 @@ class I18n {
 			$locale = is_admin() ? get_user_locale() : get_locale();
 		}
 		unload_textdomain( 'filebird' );
-		load_textdomain( 'filebird', NJFB_PLUGIN_PATH . '/i18n/languages/filebird-' . $locale . '.mo' );
+		load_textdomain( 'filebird', WP_LANG_DIR . '/plugins/filebird-' . $locale . '.mo' );
 		load_plugin_textdomain( 'filebird', false, NJFB_PLUGIN_PATH . '/i18n/languages/' );
 	}
 
@@ -284,6 +284,9 @@ class I18n {
 			'lifetime_license'                  => __( 'Lifetime license', 'filebird' ),
 			'pro'                               => __( 'PRO', 'filebird' ),
 			'no_folders_export'                 => __( 'There are no folders to export.', 'filebird' ),
+			'searching_folder_api'              => __( 'Switch from searching using JavaScript to using an API', 'filebird' ),
+			'folders_for_media_library'         => __( 'Folders for media library', 'filebird' ),
+			'folders_for_post_types'            => __( 'Folders for post types', 'filebird' ),
 		);
 		return $translation;
 	}

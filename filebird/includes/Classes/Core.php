@@ -8,6 +8,7 @@ use FileBird\Utils\Vite;
 use FileBird\Classes\Helpers as Helpers;
 use FileBird\Controller\Import\ImportController;
 use FileBird\I18n as I18n;
+use FileBird\Model\UserSettingModel;
 use FileBird\Model\SettingModel;
 use FileBird\Controller\Convert as ConvertController;
 use FileBird\Classes\FolderStateManager;
@@ -15,12 +16,14 @@ use FileBird\Classes\FolderStateManager;
 defined( 'ABSPATH' ) || exit;
 
 class Core {
-	private $settingModel = null;
+	private $userSettingModel = null;
+	private $settingModel     = null;
 
     use Singleton;
 
     public function __construct() {
-		$this->settingModel = SettingModel::getInstance();
+		$this->userSettingModel = UserSettingModel::getInstance();
+		$this->settingModel     = SettingModel::getInstance();
 		$this->loadModules();
 		$this->checkUpdateDatabase();
 	}
@@ -44,6 +47,9 @@ class Core {
 
 		add_filter( 'users_have_additional_content', array( $this, 'users_have_additional_content' ), 10, 2 );
 		add_action( 'deleted_user', array( $this, 'deleted_user' ), 10, 3 );
+		// Fix WordPress VIP doesn't load CSS file correctly
+		add_filter( 'css_do_concat', array( $this, 'wordpress_vip_css_concat_filter' ), 10, 2 );
+		// -----
 	}
 
     public function checkUpdateDatabase() {
@@ -55,6 +61,13 @@ class Core {
 				}
 			}
 		}
+	}
+
+	public function wordpress_vip_css_concat_filter( $do_concat, $handle ) {
+		if ( 'filebird-ui' === $handle ) {
+			return false;
+		}
+		return $do_concat;
 	}
 
     private function loadModules() {
@@ -86,46 +99,50 @@ class Core {
 	}
 
     public function enqueueAdminScripts( $screenId ) {
+		$fbv_data = apply_filters(
+			'fbv_data',
+			array(
+				'nonce'                  => wp_create_nonce( 'fbv_nonce' ),
+				'rest_nonce'             => wp_create_nonce( 'wp_rest' ),
+				'is_upload_screen'       => 'upload.php' === $screenId ? '1' : '0',
+				'i18n'                   => I18n::getTranslation(),
+				'media_mode'             => get_user_option( 'media_library_mode', get_current_user_id() ),
+				'json_url'               => apply_filters( 'filebird_json_url', get_rest_url( null, NJFB_REST_URL ) ),
+				'media_url'              => admin_url( 'upload.php' ),
+				'asset_url'              => NJFB_PLUGIN_URL . 'assets/',
+				'data_import'            => ImportController::get_notice_import( $screenId ),
+				'data_import_url'        => esc_url(
+					add_query_arg(
+						array(
+							'page' => Settings::SETTING_PAGE_SLUG . '#/import-export',
+						),
+						admin_url( 'admin.php' )
+					)
+				),
+				'is_new_user'            => get_option( 'fbv_is_new_user', false ),
+				'update_database_notice' => apply_filters( 'fbv_update_database_notice', false ),
+				'is_rtl'                 => is_rtl(),
+				'tree_mode'              => 'attachment',
+				'folder_search_api'      => apply_filters( 'fbv_folder_api_search', $this->settingModel->get( 'IS_SEARCH_USING_API' ) ),
+			)
+		);
+
 		$script_handle = Vite::enqueue_vite( 'main.tsx' );
 
 		wp_enqueue_script( 'jquery-ui-draggable' );
 		wp_enqueue_script( 'jquery-ui-droppable' );
+		wp_enqueue_script( 'wp-dom-ready' );
+		wp_enqueue_style( 'filebird-ui', NJFB_PLUGIN_URL . 'assets/dist/style.css', array(), NJFB_VERSION );
 
 		if ( wp_is_mobile() ) {
 			wp_enqueue_script( 'jquery-touch-punch-fixed', NJFB_PLUGIN_URL . 'assets/js/jquery.ui.touch-punch.js', array( 'jquery-ui-widget', 'jquery-ui-mouse' ), NJFB_VERSION, false );
 		}
 
-		wp_localize_script(
-			$script_handle,
-			'fbv_data',
-			apply_filters(
-				'fbv_data',
-				array(
-					'nonce'                  => wp_create_nonce( 'fbv_nonce' ),
-					'rest_nonce'             => wp_create_nonce( 'wp_rest' ),
-					'is_upload_screen'       => 'upload.php' === $screenId ? '1' : '0',
-					'i18n'                   => I18n::getTranslation(),
-					'media_mode'             => get_user_option( 'media_library_mode', get_current_user_id() ),
-					'json_url'               => apply_filters( 'filebird_json_url', get_rest_url( null, NJFB_REST_URL ) ),
-					'media_url'              => admin_url( 'upload.php' ),
-					'asset_url'              => NJFB_PLUGIN_URL . 'assets/',
-					'data_import'            => ImportController::get_notice_import( $screenId ),
-					'data_import_url'        => esc_url(
-						add_query_arg(
-							array(
-								'page' => Settings::SETTING_PAGE_SLUG . '#/import-export',
-							),
-							admin_url( 'admin.php' )
-						)
-					),
-					'is_new_user'            => get_option( 'fbv_is_new_user', false ),
-					'update_database_notice' => apply_filters( 'fbv_update_database_notice', false ),
-					'is_rtl'                 => is_rtl(),
-					'tree_mode'              => 'attachment',
-					'folder_search_api'      => apply_filters( 'fbv_folder_api_search', false ),
-				)
-			)
-		);
+		wp_enqueue_script( 'filebird-e', NJFB_PLUGIN_URL . 'assets/js/e.js', array(), NJFB_VERSION );
+
+		wp_localize_script( 'filebird-e', 'fbv_data', $fbv_data );
+		wp_localize_script( $script_handle, 'fbv_data', $fbv_data );
+		wp_localize_script( 'wp-dom-ready', 'fbv_data', $fbv_data );
 	}
 
     public function restrictManagePosts() {
@@ -158,7 +175,7 @@ class Core {
 			return $clauses;
 		}
 
-		$fb_folder = ( new FolderStateManager( $query, $this->settingModel ) )->getFbFolder();
+		$fb_folder = ( new FolderStateManager( $query, $this->userSettingModel ) )->getFbFolder();
 
 		if ( ! \is_null( $fb_folder ) ) {
 			if ( FolderModel::ALL_CATEGORIES === $fb_folder ) {
@@ -193,7 +210,10 @@ class Core {
 					}
 				}
 			}
-			FolderModel::setFoldersForPosts( $post_id, $parent );
+
+			$ids = array_map( 'intval', apply_filters( 'fbv_ids_assigned_to_folder', array( $post_id ) ) );
+
+			FolderModel::setFoldersForPosts( $ids, $parent );
 		}
 	}
 
@@ -205,7 +225,7 @@ class Core {
 		// phpcs::ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_REQUEST['query']['fbv'] ) ) {
 			$fbv          = Helpers::sanitize_intval_array( $_REQUEST['query']['fbv'] );
-			$query['fbv'] = ( new FolderStateManager( $query, $this->settingModel ) )->getState( $fbv );
+			$query['fbv'] = ( new FolderStateManager( $query, $this->userSettingModel ) )->getState( $fbv );
 		}
 		return $query;
 	}
