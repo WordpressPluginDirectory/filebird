@@ -1,10 +1,10 @@
 === FileBird - WordPress Media Library Folders & File Manager ===
 Contributors: ninjateam
 Donate link: https://ninjateam.org/wordpress-media-library-folders/ 
-Tags: wordpress media library folders, folders, media, media folders, category, file manager
+Tags: wordpress media library folders, wp media folders, media, media folders, file manager
 Requires at least: 3.0
-Tested up to: 6.6
-Stable tag: 6.4.2
+Tested up to: 6.8
+Stable tag: 6.5.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -208,6 +208,30 @@ Happy Organizing! 😍
 
 
 == Changelog ==
+
+= Oct 17, 2025 – Version 6.5.0 =
+- Added: Double click folder to rename
+- Improved: Security for Clear All Data function
+
+= Aug 4, 2025 – Version 6.4.9 =
+- Added: Accessibility improvements based on WCAG guidelines
+- Fixed: Security
+
+= Apr 19, 2025 – Version 6.4.8 =
+- Added: FileBird Gallery Element for WPBakery Page Builder (PRO)
+- Added: Support Import/Export Custom Post Types (PRO)
+
+= Mar 19, 2025 – Version 6.4.7 =
+- Improved: Code for Performance and maintainability
+
+= Feb 12, 2025 – Version 6.4.6 =
+- Added: Display caption for lightbox 
+- Improved: Request handling (conflict with JobBoardWP plugin) 
+- Fixed: Security (reported by researcher Revan Arifio)
+
+= Dec 11, 2024 - Version 6.4.2.1 =
+- Fixed: Zoom out feature in Gutenberg edior is disabled
+- Updated: Block uses Tree instead of Select
 
 = Oct 17, 2024 - Version 6.4.2 =
 - Added: Auto Select Previous Folder in Upload New Media Page

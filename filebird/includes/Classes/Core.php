@@ -213,7 +213,11 @@ class Core {
 
 			$ids = array_map( 'intval', apply_filters( 'fbv_ids_assigned_to_folder', array( $post_id ) ) );
 
-			FolderModel::setFoldersForPosts( $ids, $parent );
+			$user_has_own_folder = get_option( 'njt_fbv_folder_per_user', '0' ) === '1';
+			$current_user_id     = get_current_user_id();
+			if( FolderModel::verifyAuthor( $parent, $current_user_id, $user_has_own_folder ) ){
+				FolderModel::setFoldersForPosts( $ids, $parent );
+			}
 		}
 	}
 
@@ -314,6 +318,13 @@ class Core {
 	public function users_have_additional_content( $users_have_content, $userids ) {
 		global $wpdb;
 		if ( $userids && ! $users_have_content ) {
+			$userids = array_map( 'intval', (array) $userids );
+			$userids = array_filter( $userids, function( $id ) {
+				return $id !== 0;
+			} );
+			if ( empty( $userids ) ) {
+				return $users_have_content;
+			}
 			if ( $wpdb->get_var( "SELECT id FROM {$wpdb->prefix}fbv WHERE created_by IN( " . implode( ',', $userids ) . ' ) LIMIT 1' ) ) {
 				$users_have_content = true;
 			}

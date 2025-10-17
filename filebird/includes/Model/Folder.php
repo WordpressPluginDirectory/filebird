@@ -17,18 +17,32 @@ class Folder {
 		//TODO need to convert ord to number using +0
 		global $wpdb;
 
-		$conditions = array(
-			'1 = 1',
-			'created_by = ' . apply_filters( 'fbv_folder_created_by', 0 ),
-		);
-
-		if ( ! empty( $search ) ) {
-			$conditions[] = "name LIKE '%" . $wpdb->esc_like( $search ) . "%'";
+		$allowed_columns = array( '*', 'id', 'name', 'parent', 'type', 'created_by', 'ord' );
+		$select_parts = array_map( 'trim', explode( ',', $select ) );
+		foreach ( $select_parts as $part ) {
+			if ( ! in_array( $part, $allowed_columns, true ) ) {
+				$select = '*';
+				break;
+			}
 		}
-		$conditions = implode( ' AND ', $conditions );
-		$sql        = "SELECT $select FROM " . self::getTable( self::$folder_table ) . ' WHERE ' . $conditions . ' ORDER BY `ord` ASC';
 
-		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
+		$created_by = apply_filters( 'fbv_folder_created_by', 0 );
+		
+		if ( ! empty( $search ) ) {
+			$sql = $wpdb->prepare(
+				"SELECT $select FROM " . self::getTable( self::$folder_table ) . 
+				" WHERE 1 = 1 AND created_by = %d AND name LIKE %s ORDER BY `ord` ASC",
+				$created_by,
+				'%' . $wpdb->esc_like( $search ) . '%'
+			);
+		} else {
+			$sql = $wpdb->prepare(
+				"SELECT $select FROM " . self::getTable( self::$folder_table ) . 
+				" WHERE 1 = 1 AND created_by = %d ORDER BY `ord` ASC",
+				$created_by
+			);
+		}
+
 		$folders = $wpdb->get_results( $sql );
 
 		if ( 'name' === $order_by && in_array( $order, array( 'asc', 'desc' ), true ) ) {
@@ -75,11 +89,14 @@ class Folder {
 	}
 	public static function verifyAuthor( $folder_id, $current_user_id, $folder_per_user = false ) {
 		global $wpdb;
+		if( $folder_id == 0 ) {
+			return true;
+		}
+		$created_by = (int) $wpdb->get_var( $wpdb->prepare( "SELECT `created_by` FROM {$wpdb->prefix}fbv WHERE `id` = %d", $folder_id ) );
 		if ( $folder_per_user ) {
-			$created_by = (int) $wpdb->get_var( $wpdb->prepare( "SELECT `created_by` FROM {$wpdb->prefix}fbv WHERE `id` = %d", $folder_id ) );
 			return $created_by == $current_user_id;
 		}
-		return true;
+		return $created_by == 0;
 	}
 	public static function updateAuthor( $from_author, $to_author ) {
 		global $wpdb;
@@ -138,14 +155,19 @@ class Folder {
 		if ( ! $isUsed ) {
 			return array();
 		}
-
-		$query = $wpdb->prepare(
-            "SELECT parent,GROUP_CONCAT(id) as child 
-            FROM {$wpdb->prefix}fbv
-			WHERE created_by = %d
-			GROUP BY parent",
-        	apply_filters( 'fbv_folder_created_by', 0 )
-        );
+		$check_author = apply_filters( 'fbv_will_check_author', true );
+		if( $check_author ) {
+			$query = $wpdb->prepare(
+				"SELECT parent,GROUP_CONCAT(id) as child 
+				FROM {$wpdb->prefix}fbv 
+				WHERE created_by = %d 
+				GROUP BY parent",
+				apply_filters( 'fbv_folder_created_by', 0 )
+			);
+		} else {
+			$query = "SELECT parent,GROUP_CONCAT(id) as child FROM {$wpdb->prefix}fbv GROUP BY parent";
+		}
+		
 
 		$result       = $wpdb->get_results( $query );
 		$nestedFolder = array();
@@ -181,16 +203,26 @@ class Folder {
 
 	public static function countAttachments( $lang = null ) {
         global $wpdb;
-
-        $query = $wpdb->prepare(
-            "SELECT folder_id, count(attachment_id) as counter
-                FROM {$wpdb->prefix}posts AS `posts`
-                INNER JOIN {$wpdb->prefix}fbv_attachment_folder AS `fbva` ON (fbva.attachment_id = posts.ID AND posts.post_type = 'attachment')
-				INNER JOIN {$wpdb->prefix}fbv AS `fbv` ON (fbva.folder_id = fbv.id AND fbv.created_by = %d)
-				WHERE posts.post_status != 'trash'
-				GROUP BY folder_id",
-                apply_filters( 'fbv_folder_created_by', 0 )
-            );
+		$check_author = apply_filters( 'fbv_will_check_author', true );
+		if( $check_author ) {
+			$query = $wpdb->prepare(
+				"SELECT folder_id, count(attachment_id) as counter
+					FROM {$wpdb->prefix}posts AS `posts`
+					INNER JOIN {$wpdb->prefix}fbv_attachment_folder AS `fbva` ON (fbva.attachment_id = posts.ID AND posts.post_type = 'attachment')
+					INNER JOIN {$wpdb->prefix}fbv AS `fbv` ON (fbva.folder_id = fbv.id AND fbv.created_by = %d)
+					WHERE posts.post_status != 'trash'
+					GROUP BY folder_id",
+					apply_filters( 'fbv_folder_created_by', 0 )
+				);
+		} else {
+			$query = "SELECT folder_id, count(attachment_id) as counter
+					FROM {$wpdb->prefix}posts AS `posts`
+					INNER JOIN {$wpdb->prefix}fbv_attachment_folder AS `fbva` ON (fbva.attachment_id = posts.ID AND posts.post_type = 'attachment')
+					INNER JOIN {$wpdb->prefix}fbv AS `fbv` ON (fbva.folder_id = fbv.id)
+					WHERE posts.post_status != 'trash'
+					GROUP BY folder_id";
+		}
+        
 
 		$nestedFolder = self::getNestedFolder();
 		$query        = apply_filters( 'fbv_all_folders_and_count', $query, $lang );
